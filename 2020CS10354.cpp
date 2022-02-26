@@ -6,7 +6,7 @@
 #include <cassert>
 #include<mkl.h>
 #include "dnn_weights.h"
-
+#include<algorithm>
 using namespace std;
 
 // a is input
@@ -14,9 +14,9 @@ using namespace std;
 // c is bias
 // d is output
 float a[1000*1000];
-float b[1000*1000];
-float c[1000*1000];
-float d[1000*1000];
+// float b[1000*1000];
+// float c[1000*1000];
+// float d[1000*1000];
 int x,y,z;
 
 void matMULmkl(float WT[],float BI[]){
@@ -68,14 +68,14 @@ void avgPool(vector<vector<float>> &M,vector<vector<float>> &N,int stride){
     return;
 }
 
-void softmax(vector<float> &a,vector<float> &b){
-    float x=0;
-    int n=a.size();
+void softmax(float a[]){
+    float s=0;
+    int n = x*z;
     for (int i=0;i<n;i++){
-        x=x+exp(a[i]);
+        s=s+exp(a[i]);
     }
     for (int i=0;i<n;i++){
-        b[i]=exp(a[i])/x;
+        a[i]=exp(a[i])/s;
     }
     return;
 }
@@ -94,13 +94,11 @@ float reLU_single(float x){
 }
 
 // returns N=relu(M) (relu applied to each element of M)
-void reLU(vector<vector<float>> &M,vector<vector<float>> &N){
-    int n=M.size();
-    int m=M[0].size();
+void reLU(float M[]){
+    int n= x*z;
     for (int i=0;i<n;i++){
-        for ( int j=0;j<m;j++){
-            N[i][j]=reLU_single(M[i][j]);
-        }
+        M[i] = reLU_single(M[i]);
+        
     }
     return;
 }
@@ -120,30 +118,55 @@ void tanh(vector<vector<float>> &M,vector<vector<float>> &N){
     }
     return;
 }
-
-void neuralnet(){
-    x=1;y=250;z=144;
     float BI1[1000*1000]=IP1_BIAS;
     float WT1[1000*1000]=IP1_WT;
-    cout<<"hello";
-    matMULmkl(WT1,BI1);
-    cout<<"hello";
-    x=1;y=144;z=144;
     float BI2[1000*1000]=IP2_BIAS;
     float WT2[1000*1000]=IP2_WT;
-    matMULmkl(WT2,BI2);
-    return;
-}
+    float BI3[1000*1000]=IP3_BIAS;
+    float WT3[1000*1000]=IP3_WT;
+    float BI4[1000*1000]=IP4_BIAS;
+    float WT4[1000*1000]=IP4_WT;
+ int DNN(){
+    x=1;y=250;z=144;
+    matMULmkl(WT1,BI1);
+    reLU(a);
 
+    x=1;y=144;z=144;
+    matMULmkl(WT2,BI2);
+    reLU(a);
+
+    x=1;y=144;z=144;
+    matMULmkl(WT3,BI3);
+    reLU(a);
+
+    x=1;y=144;z=12;
+    matMULmkl(WT4,BI4);
+    softmax(a);
+
+    return 0;
+ }
+bool cmp(pair<float,int> a, pair<float,int> b){
+    return a > b;
+}
 int main(int argc,char *argv[]){
-    //cout<<"hello";
+    
     if(argc != 3){ // when this command is to be called we require 6 components including the ./yourcode.out
         cerr<<"Error : Not enough inputs declared in the command\n";
+        cout<<"To know about the valid command type 'help' or type 'exit' to exit this\n";
+     	string a;
+     	cin >> a;
+     	if(a == "help"){
+     		cout<<"Following is a recongnisable command\n";
+            cout<<"./yourcode.out audiosamplefile outputfile \n";
+        }
+        else{
+     		cout<<"Exiting.....\n";
+     	}
         return 0;
     }
     // passing matrices through fully connected layer
 
-    //assuming for now that arg[6] contains the type of mul to do
+
     
     //reading input matrix
     string file=string(argv[1]);
@@ -155,73 +178,54 @@ int main(int argc,char *argv[]){
     }
     x=1;
     y=250;
-    //cout<<"hello";
-    // source>>y>>x;
     for (int i=0;i<y;i++){
         //cout<<"hello";
         source>>a[i];
-        cout<<i<<" ";
     }
+
+
     source.close();
-    // float arr[24]=IP4_BIAS;
-    // for (int g=0;g<12;g++){
-    //     cout<<arr[g]<<"\n";
-    // }
-cout<<"hello";
-    neuralnet();
 
-    //reading weight matrix
-    
+    int zoo = DNN();
 
-    //reading bias matrix
-    
+    string features[12] = {"silence","unknown","yes","no","up","down","left","right","on","off","stop","go"};
+    int first = 0,second = 0,third = 0;
 
     //asserting that mat multiplication and addition will be valid
     // assert(input_matrix[0].size()==weight_matrix.size());
     // assert(output_matrix.size()==bias_matrix.size());
     // assert(output_matrix[0].size()==bias_matrix[0].size());
 
-    cout<<"hello";
-    //matMULmkl();
+    pair<float,int> prob[11];
+    for (int i = 0; i < 12; i++)
+    {
+        pair<float,int> p;
+        p.first = a[i];
+        p.second = i;
+        prob[i] =  p;
+    }
+
+    sort(prob,prob + 12,cmp);
+    first = prob[0].second;
+    second = prob[1].second;
+    third = prob[2].second;
     
-    file=string(argv[2]);
+    string file1=string(argv[2]);
     ofstream destination;
-    destination.open(file);
+    destination.open(file1,std::ios_base::app);
     if (!destination.is_open()) { 
         cerr<<"File could not be opened"<<"\n";
         return 0;
     }
-    // destination<<z<<"\n";
-    // destination<<x<<"\n";
-    for (int i=0;i<y;i++){
-        for (int j=0;j<x;j++){
-            destination<<a[j*z+i];
-            destination<<"\n";
-        }
-    }
+
+    destination << file << " " << features[first] << " " << features[second] << " " << features[third] << " ";
+    destination << a[first] << " " << a[second] << " " << a[third] << "\n"; 
+
     destination.close();
     
-    if (false){ // if any other argument is given, a help block is displayed to the user
-    	cerr<<"Error : The given command is not recongnisable by the program\n";
-    	cout<<"To know about the valid commands type 'help' or type 'exit' to exit this\n";
-    	string a;
-    	cin >> a;
-    	if(a == "help"){
-    		cout<<"Following are the recongnisable commands\n";
-            cout<<"./yourcode.out fullyconnected inputmatrix.txt weightmatrix.txt biasmatrix.txt outputmatrix.txt mkl \n";
-    		cout<<"./yourcode.out fullyconnected inputmatrix.txt weightmatrix.txt biasmatrix.txt outputmatrix.txt openblas \n";
-            cout<<"./yourcode.out fullyconnected inputmatrix.txt weightmatrix.txt biasmatrix.txt outputmatrix.txt pthread \n";
-            cout<<"./yourcode.out fullyconnected inputmatrix.txt weightmatrix.txt biasmatrix.txt outputmatrix.txt \n";
-    		cout<<"./yourcode.out activation relu inputmatrix.txt outputmatrix.txt\n";
-    		cout<<"./yourcode.out activation tanh inputmatrix.txt outputmatrix.txt\n";
-    		cout<<"./yourcode.out pooling max inputmatrix.txt stride outputmatrix.txt\n";
-    		cout<<"./yourcode.out pooling average inputmatrix.txt stride outputmatrix.txt\n";
-    		cout<<"./yourcode.out probability softmax inputvector.txt outputvector.txt\n";
-    		cout<<"./yourcode.out probability sigmoid inputvector.txt outputvector.txt\n";
-    	}
-    	else{
-    		cout<<"Exiting.....\n";
-    	}
-    }
+    // if (false){ // if any other argument is given, a help block is displayed to the user
+    // 	cerr<<"Error : The given command is not recongnisable by the program\n";
+   
+    // }
     return 0;
 }

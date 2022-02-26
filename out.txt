@@ -1,0 +1,4 @@
+mfcc_features/mfcc_features/ca4d5368_nohash_5.txt yes unknown left 0.99969 0.000288316 2.21198e-05
+mfcc_features/mfcc_features/8dc18a75_nohash_2.txt right unknown left 0.999993 6.80563e-06 6.45695e-07
+mfcc_features/mfcc_features/9be15e93_nohash_3.txt down go unknown 0.971976 0.026942 0.000479285
+mfcc_features/mfcc_features/25e95412_nohash_4.txt up off on 0.998325 0.00163597 1.92163e-05
